@@ -178,5 +178,3 @@ CACHES = {
         }
     }
 }
-
-SESSION_COOKIE_SECURE =  not DEBUG[]
