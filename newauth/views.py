@@ -3,6 +3,7 @@ import time
 from django.conf import settings
 from django.contrib import auth
 from django.core.exceptions import SuspiciousOperation
+from django.core.signing import Signer
 from django.http import HttpResponseRedirect, HttpResponseNotAllowed
 from django.urls import reverse
 from django.utils.crypto import get_random_string
@@ -22,6 +23,9 @@ from mozilla_django_oidc.utils import (absolutify,
 from mozilla_django_oidc.views import OIDCAuthenticationRequestView
 from urllib.parse import urlencode
 
+from .models import StateStore
+
+signer = Signer()
 
 class CallbackView(View):
     """OIDC client authentication callback HTTP endpoint"""
@@ -57,11 +61,8 @@ class CallbackView(View):
         return HttpResponseRedirect(self.success_url)
 
     def get(self, request):
-        """Callback handler for OIDC authorization code flow"""
-        if settings.DEBUG:
-            print('sleeping')
-            time.sleep(3)
-        #import pdb; pdb.set_trace()
+        """Callback handler for OIDC authorization code flow"""    
+        print(request.session.keys())
 
         if request.GET.get('error'):
             # Ouch! Something important failed.
@@ -69,7 +70,7 @@ class CallbackView(View):
             # Delete the state entry also for failed authentication attempts
             # to prevent replay attacks.
             if ('state' in request.GET
-                    and 'oidc_states' in request.session
+                    and cstate_store
                     and request.GET['state'] in request.session['oidc_states']):
                 del request.session['oidc_states'][request.GET['state']]
                 request.session.save()
@@ -82,15 +83,16 @@ class CallbackView(View):
                 auth.logout(request)
             assert not request.user.is_authenticated
         elif 'code' in request.GET and 'state' in request.GET:
-            print(request.session['oidc_states'])
-            print('oidc_states' not in request.session)
+            import pdb; pdb.set_trace()
             # Check instead of "oidc_state" check if the "oidc_states" session key exists!
-            if 'oidc_states' not in request.session:
+            if not cstate_store:
                 return self.login_failure()
 
             # State and Nonce are stored in the session "oidc_states" dictionary.
             # State is the key, the value is a dictionary with the Nonce in the "nonce" field.
             state = request.GET.get('state')
+
+            import pdb; pdb.set_trace()
             if state not in request.session['oidc_states']:
                 msg = 'OIDC callback state not found in session `oidc_states`!'
                 raise SuspiciousOperation(msg)
@@ -101,12 +103,12 @@ class CallbackView(View):
             del request.session['oidc_states'][state]
 
             # Authenticating is slow, so save the updated oidc_states.
-            request.session.save()
+            #request.session.save()
             # Reset the session. This forces the session to get reloaded from the database after
             # fetching the token from the OpenID connect provider.
             # Without this step we would overwrite items that are being added/removed from the
             # session in parallel browser tabs.
-            request.session = request.session.__class__(request.session.session_key)
+            # request.session = request.session.__class__(request.session.session_key)
             kwargs = {
                 'request': request,
                 'nonce': nonce,
@@ -160,7 +162,9 @@ class AuthView(OIDCAuthenticationRequestView):
         redirect_field_name = self.get_settings('OIDC_REDIRECT_FIELD_NAME', 'next')
         reverse_url = self.get_settings('OIDC_AUTHENTICATION_CALLBACK_URL',
                                         'oidc_authentication_callback')
-
+        cstate = request.session.get('oidc_states', {})
+        print(request.session.get('alpha'))
+        print(request.session.session_key)
         params = {
             'response_type': 'code',
             'scope': self.get_settings('OIDC_RP_SCOPES', 'openid email'),
@@ -182,10 +186,9 @@ class AuthView(OIDCAuthenticationRequestView):
 
         nonce = params.get('nonce')
 
-        cstate = request.session.get('oidc_states', {})
-
+        '''
         limit = import_from_settings('OIDC_MAX_STATES', 50)
-        if len(cstate) >= limit:
+        if len(cstate.keys()) >= limit:
             LOGGER.info(
                 'User has more than {} "oidc_states" in his session, '
                 'deleting the oldest one!'.format(limit)
@@ -197,19 +200,23 @@ class AuthView(OIDCAuthenticationRequestView):
                     oldest_state = item_state
                     oldest_added_on = item['added_on']
             if oldest_state:
-                del request.session['oidc_states'][oldest_state]
+                # del request.session['oidc_states'][oldest_state]
+                pass
+        '''
 
         cstate[state] = {
-            'nonce': nonce,
+            'nonce': None,
             'added_on': time.time(),
         }
 
-        request.session['oidc_states'] = cstate
         request.session['oidc_login_next'] = get_next_url(request, redirect_field_name)
-        
+        request.session['oidc_states'] = cstate
+        #request.session.modified = True
         query = urlencode(params)
         redirect_url = '{url}?{query}'.format(url=self.OIDC_OP_AUTH_ENDPOINT, query=query)
-        print(request.session['oidc_states'])
+        print(request.session['alpha'])
+        print(request.session.session_key)
+        import pdb; pdb.set_trace()
         return HttpResponseRedirect(redirect_url)
 
     def get_extra_params(self, request):

@@ -8,4 +8,5 @@
   <a href="{% url 'oidc_authentication_init' %}">Login</a>
 {% endif %}
 
-{{ request.session.oidc_states }}
+{{ request.session.alpha }}
+{{ request.session.session_key }}

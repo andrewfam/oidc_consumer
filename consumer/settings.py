@@ -44,7 +44,8 @@ DJANGO_APPS = [
 ]
 
 INTERNAL_APPS = [
-    'home'
+    'home',
+    'newauth'
 ]
 
 EXTERNAL_APPS = [
@@ -90,11 +91,11 @@ WSGI_APPLICATION = 'consumer.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': 'oidc_consumer_db',
-        'USER': 'oidc_admin',
-        'PASSWORD': '4B434kgStFqVu6EZ',
+        'NAME': env('POSTGRES_DATABASE_NAME'),
+        'USER': env('POSTGRES_DATABASE_USER'),
+        'PASSWORD': env('POSTGRES_DATABASE_PASSWORD'),
         'HOST': 'localhost',
-        'PORT': '',                      # Set to empty string for default.
+        'PORT': env('POSTGRES_DATABASE_PORT'),                      # Set to empty string for default.
     }
 }
 
@@ -166,7 +167,7 @@ OIDC_USE_NONCE = False
 OIDC_CALLBACK_CLASS = 'newauth.views.CallbackView'
 OIDC_AUTHENTICATE_CLASS = 'newauth.views.AuthView'
 
-SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+#SESSION_ENGINE = "django.contrib.sessions.backends.cache"
 
 CACHES = {
     "default": {
@@ -177,3 +178,5 @@ CACHES = {
         }
     }
 }
+
+SESSION_COOKIE_SECURE =  not DEBUG[]
