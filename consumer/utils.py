@@ -34,7 +34,6 @@ class AuthManager(OIDCAuthenticationBackend):
         if not self.request:
             return None
 
-        import pdb; pdb.set_trace()
         state = self.request.GET.get('state')
         code = self.request.GET.get('code')
         nonce = kwargs.pop('nonce', None)

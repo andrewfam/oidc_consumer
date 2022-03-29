@@ -29,8 +29,7 @@ SECRET_KEY = 'django-insecure-i6cz3cg($+21yt=8&!_f65(5ubxo*3i5ur^8^jzfw(cd=4hg5%
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
-
+ALLOWED_HOSTS = env.list('ALLOWED_HOSTS')
 
 # Application definition
 
@@ -45,7 +44,7 @@ DJANGO_APPS = [
 
 INTERNAL_APPS = [
     'home',
-    'newauth'
+    #'newauth'
 ]
 
 EXTERNAL_APPS = [
@@ -149,7 +148,7 @@ AUTHENTICATION_BACKENDS = (
     #"django.contrib.auth.backends.ModelBackend",
     # OIDC authentication backend -> You can use the default (from mozilla's docs)
     # or create a custom Backend, as I have done
-    'consumer.utils.AuthManager',
+    'mozilla_django_oidc.auth.OIDCAuthenticationBackend',
 
     # `allauth` specific authentication methods, such as login by e-mail
     #'allauth.account.auth_backends.AuthenticationBackend',
@@ -164,10 +163,10 @@ OIDC_OP_USER_ENDPOINT = env('OIDC_OP_USER_ENDPOINT') #                   |    pr
 OIDC_OP_LOGOUT_URL_METHOD = 'consumer.utils.logout_redirect_uri'
 OIDC_STORE_ID_TOKEN = True
 OIDC_USE_NONCE = False
-OIDC_CALLBACK_CLASS = 'newauth.views.CallbackView'
-OIDC_AUTHENTICATE_CLASS = 'newauth.views.AuthView'
+OIDC_CALLBACK_CLASS = 'mozilla_django_oidc.views.OIDCAuthenticationCallbackView'
+OIDC_AUTHENTICATE_CLASS = 'mozilla_django_oidc.views.OIDCAuthenticationRequestView'
 
-#SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+SESSION_ENGINE = "django.contrib.sessions.backends.cache"
 
 CACHES = {
     "default": {
